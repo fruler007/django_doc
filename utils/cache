@@ -1,0 +1,178 @@
+django缓存框架：
+	django-redis技术文档：https://django-redis-chs.readthedocs.io/zh_CN/latest/#
+	1.设置缓存
+		settings.py
+			CACHES = {
+			    'default':{
+			        'BACKEND': 'django_redis.cache.RedisCache',
+			        'LOCATION': 'redis://180.76.246.44:6379',
+			        'OPTIONS': {
+			            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+			            'PASSWORD': 'ihome123',
+			        },
+			    },
+			}
+
+	2.测试
+		进入django的后台命令模式：
+			python manage.py shell
+
+		逐条输入如下命令测试：
+			from django.core.cache import cache #引入缓存模块
+			cache.set('v', '555', 60*60)      #写入key为v，值为555的缓存，有效期30分钟
+			cache.has_key('v') #判断key为v是否存在
+			cache.get('v')     #获取key为v的缓存
+
+
+	站点缓存：
+		中间件配置中添加如下两个中间件，注意位置，django.middleware.cache.UpdateCacheMiddleware位于中间件的第一个，django.middleware.cache.FetchFromCacheMiddleware位于最后。
+
+		UpdateCacheMiddleware中间件会自动设置HttpResponse对象相关header：
+			将Expires标题设置为当前日期/时间加上定义的日期/时间 CACHE_MIDDLEWARE_SECONDS。
+			设置Cache-Control标题以给出页面的max age - 同样，从CACHE_MIDDLEWARE_SECONDS设置中。
+
+		设置
+
+			settings.py
+			
+
+				MIDDLEWARE  =  [ 
+				    'django.middleware.cache.UpdateCacheMiddleware' ，
+				    'django.middleware.common.CommonMiddleware' ，
+				    'django.middleware.cache.FetchFromCacheMiddleware' ，
+				]
+
+				CACHE_MIDDLEWARE_ALIAS 
+				CACHE_MIDDLEWARE_SECONDS	#设置页面缓存的有效期
+				CACHE_MIDDLEWARE_KEY_PREFIX 	#设置缓存key的前缀，主要用于在多个db环境中时，避免key相同导致的冲突
+
+
+
+	视图缓存：
+		views.py
+			from django.views.decorators.cache import cache_page
+
+			@cache_page(60 * 15, cache='default', key_prefix='______')	
+			def test(request):
+				...
+
+			第一个参数为超时时间单位为秒
+			参数cache为选择哪个缓存服务器作存储缓存
+			参数key_prefix为可以的前缀，和CACHE_MIDDLEWARE_KEY_PREFIX将会连接在一起
+			eg2:
+				@cache_page(60 * 15)
+				def test(request):
+					...
+
+
+		如果多个url指向同一个视图，将把每一个url单独缓存，如下：
+			将会单独缓存
+			urlpatterns  =  [ 
+			    url （r '^ foo /（[0-9] {1,2}）/ $' ， my_view ），
+			]
+
+
+		在URLconf中指定每视图缓存
+			在urlconf中执行视图缓存，可以更加灵活的编码。
+			eg:
+				urlpatterns  =  [ 
+					url(r'^test$', cache_page(60*15,  cache='default', key_prefix='______')(views.test)),
+				]
+
+	模板缓存：
+		{% load cache %}
+		{% cache timeout sidebar1 sidebar1 ...}
+		{% endcache %}
+
+		执行数据：
+			{% cache 300 local-thing ...  using="localcache" %}
+
+
+		eg:
+			{% load cache %}
+			{% cache 60 t1 %}
+			{% endcache %}
+
+	低级缓存api：
+		访问缓存：
+			django.core.cache.caches
+				通过该类，可以访问settings中设置的所有缓存
+				eg:
+					>>> from django.core.cache import caches
+					>>> cache1 = caches['myalias']
+					>>> cache2 = caches['myalias']
+					>>> cache1 is cache2
+					True
+			django.core.cache.cache
+				通过该类，可以访问settings中设置的default缓存
+					>>> from django.core.cache import cache
+					cache等价于caches['default']
+
+		基本用法：
+			方法：
+				get(key,default):
+					eg:
+						>>>cache.get(k1)
+						>>>cache.get(k1, '1')
+
+				get_many(like_list):
+					eg:
+						>>>cache.get_many(['a','b', 'c'])
+						{'a': 1, 'b': 2, 'c': 3}
+
+				set(timeout=None, key, value):
+					None表示没有过期时间
+					eg:
+						>>>cache.set(k1, v1)
+
+				set_many(like_dict_obj):
+					eg:
+						>>>cache.set_many({'a':1, 'b': 2, 'c': 3})
+
+				get_or_set(key, value):
+					获取key值，如果key值存在，这获取，没有则设置
+					cache.get_or_set('some-timestamp-key', datetime.datetime.now)
+					datetime.datetime(2014, 12, 11, 0, 15, 49, 457920)
+
+				add(key)：
+					查询缓冲中是否有该key，如果有返回True，否则返回False
+
+				delete(key)：
+					删除key,并返回删除的个数
+
+				delete_many(like_list_obj)
+					批量删除，并返回删除的个数
+					eg:
+						cache.delete_many(['a','b','c'])
+
+				clear()
+					清除数据库中所有缓存，请谨慎使用
+
+				incr(key, number=1)：
+					增加key对应的value值，并返回增加后的value。默认增量为1,
+					eg:
+					 	cache.get('t2')
+						1
+						>>> cache.incr('t2',1)
+						2
+						>>> cache.incr('t2',4)
+						7
+						>>> cache.incr('t2','a')
+
+				decr(key, number=1)):
+					减小key对应的value值，并返回见后的value。默认减1
+					eg:
+						>>> cache.set('t3', 1)
+						True
+						>>> cache.decr('t3')
+						0
+						>>> cache.decr('t3',2)
+						-2
+				close():关闭连接
+
+
+	缓存key名字转换：
+		django的缓存中key的命名有一定的规则，所以自定义key时，需遵循响应的规则，以免出现冲突：
+			如下：有key，前缀，版本，三部分组成
+			def make_key(key, key_prefix, version):
+    			return ':'.join([key_prefix, str(version), key])
