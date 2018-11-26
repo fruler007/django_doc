@@ -1,0 +1,7 @@
+django程序目录结构
+
+django_proj____manage.py
+		   |___django_proj    url.py admin.py settings.py views.py wsgi.py templatetags/
+		   |___app  admin.py views.py models.py migrations/
+		   |___static	# 存放静态文件
+		   |___templates # 存放模板文件

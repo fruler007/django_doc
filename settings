@@ -1,0 +1,48 @@
+setting.py:
+	数据库配置
+		DATABASES = {
+			'default': {
+				'ENGINE': 'django.db.backend.mysql',
+				'NAME': database_name,
+				'HOST': XX.XX.XX.XX,
+				'PORT': '3306',
+				'USER': 'username',
+				'PASSWORD': 'password'
+			}
+		}
+
+
+	静态文件配置
+		STATIC_URL = 'static'   # 设置对外访问的静态文件uri
+		STATICFILES_DIRS = (	# 设置存放静态文件的各个目录
+			os.path.join(BASE_DIR, 'static')
+		)
+		STATIC_ROOT = os.path.join(BASE_DIR, 'static') # 设置收集后的静态文件存放位置
+
+		收集STATICFILES_DIRS参数中的静态文件到STATIC_ROOT：python manage.py collectstatic
+
+	auth user模型配置:
+		AUTH_USER_MODEL = 'crm.UserProfile'
+
+
+	模板目录配置:
+		TEMPLATE_DIRS = [
+		    {
+		        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+		        'DIRS': [os.path.join('templates'), ],   #设置寻找模板的目录
+		        'APP_DIRS': True,
+		        'OPTIONS': {
+		            'context_processors': [
+		                'django.template.context_processors.debug',
+		                'django.template.context_processors.request',
+		                'django.contrib.auth.context_processors.auth',
+		                'django.contrib.messages.context_processors.messages',
+			            ],
+			        },
+			 },
+		]
+
+	已经废弃的方法：TEMPLATE_DIRS = (os.path.join(BASE_DIR,  'templates'),)
+
+
+	默认登录url：LOGIN_URL = '/login'

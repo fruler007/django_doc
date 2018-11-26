@@ -1,0 +1,351 @@
+模型(models)：
+	一个完成的模型示例：
+	class Model_Obj(models.Model):
+		name = models.CharField()
+
+		def __str__(self):
+			return self.name
+
+		class Meta:
+			verbose_name = self.name
+			verbose_name_plural = '%ss' %self.name
+			permissions = (
+				('identify', 'description')，
+			)
+
+
+	model对象
+	field对象: related_query_name,  related_name
+
+		field option(共17个):
+					null
+					blank
+					choice  # get_fieldname_display()
+					db_column
+					db_index	#为该字段建立索引
+					db_tablespace
+					default
+					editable	False/True ,若为False，该字段将不会在admin或modelform中显示。默认为ture
+					error_messages	
+					help_text	# help_text="Please use the following format: <em>YYYY-MM-DD</em>."
+					primary_key 	# True/False
+					unique # 
+					unique_for_date
+					unique_for_month
+					unique_for_year
+					verbose_name
+					validators	#验证失败后，调用的动作函数或对象
+
+		field types(共27项):
+			AutoField
+			BigAutoField	# 64bit integer
+			BigIntegerField #	64bit iterger
+			BinaryField
+			BooleanField
+			CharField
+			CommaSepratatedIntegerField		# 一串由逗号分开的整数
+			DateField(auto_now, auto_now_add)	# auto_now  修改数据是自动更新时间， auto_now_add 第一次创建记录时更新，其值为datetime.date.today()
+			DateTimeField(auto_now, auto_now_add)	# 其值为django.utils.timezone.now()
+			DecimalField(max_digits=None, decimal_place=None) : decimal类型，
+			DurationField
+			EmailField
+			FileField()
+			FieldPathField
+			FloatField
+			ImageField
+			IntegerField:	-2147483648 to 2147483647
+			GenericIPAddressField
+			NullBooleanField
+			PostiveIntergerField:  0 to 2147483647 
+			PositiveSmallIntegerField ： 0 to 32767
+			SlugField 
+			SmaillIntegerField -32767 - 32767
+			TextField
+			TimeField
+			URLFIeld
+			UUIDField
+
+		Relationship fields:
+			ForeignKey
+			ManyTOManyField
+			OneToOneField
+
+			https://docs.djangoproject.com/en/1.11/topics/db/models/#abstract-related-name
+			https://docs.djangoproject.com/en/1.11/ref/models/fields/#django.db.models.ForeignKey
+
+			ForeignKey字段参数：
+				on_delelte: 参数值：CASCADE, PROTECT, SET_NULL, SET_DEFAULT, SET(),DO_NOTHING
+				limit_choice_to:
+				to_field:
+				db_constraint:
+				swappable:
+				related_name:
+						为设置related_name之前：
+							b = Blog.objects.get(id=1)
+							b.entry_set.filter(headline__contains='Lennon')
+						设置之后：
+							blog = ForeignKey(Blog, on_delete=models.CASCADE, related_name='entries')
+							b.entries.filter(headline_containes='Lennon')
+							
+				ralated_query_name: 该参数用于目标模型的反向过滤，一般默认值为related_name或default_related_name,否则为模型名称。
+					eg:	
+						class Tag(models.Model):
+						    article = models.ForeignKey(
+						        Article,
+						        on_delete=models.CASCADE,
+						        related_name="tags",
+						        related_query_name="tag",
+						    )
+						    name = models.CharField(max_length=255)
+
+						# That's now the name of the reverse filter
+						Article.objects.filter(tag__name="important")
+				
+
+
+
+		Field api:
+
+
+		Model _meta API: https://docs.djangoproject.com/en/1.11/ref/models/meta/
+			_meta为model类的属性，为django.db.models.options.Options的一个实例
+
+
+		Related objects reference：
+			https://docs.djangoproject.com/en/1.11/ref/models/relations/
+
+
+
+
+
+
+
+	Meta选项(共22个选项)：
+		abstract
+		app_label
+		db_table #执行库-表的名字
+		default_related_name = 'xxx' 类似于ForeignKey.related_query_name
+		ordering = ['']   # 排序 ['-pub_date', 'author']
+		default_permissions
+		unique_together = (('driver', 'restaurant'), )  # ManyToManyField不能作为索引
+		verbose_name
+		verbose_name_pluaral
+		label:  read-only ,反对一个app_name.object_name eg:'crm.UserProfile'
+		labe_lower : read-only，返回一个小写的app_name.object_name， eg: ''crm.userprofile''
+
+
+
+
+	model方法：
+		访问外键，访问多对多，related 
+
+
+
+
+	queryset
+		过滤条件：
+			id__exact = 1
+			id_isnull = False
+			id__in=[1,2,5]
+			id_gte = 3
+			id_gt = 3
+			id_lt =3
+			id_date_year = 1980
+			object.exclude(id=3)
+
+
+		方法:
+			返回一个新的QuerySet的方法
+				filter(**kwargs)
+				exclude(**kwrgs)
+				annotate()
+				order_by('fields')
+				reverse()
+				distinct()
+				values(*fields,**expressions)
+				values_list(*fields, flat=False)
+				dates()
+				datetimes()
+				none() :空queryset
+				all()
+				union(): 合并两个queryset，默认去重两个集合中的原生。all=True,则忽略重复元素
+				count(*)
+				inersection(*other_qs) :返回两个集合共有的子集
+				difference(*other_qs):返回两个集合中不同的子集
+				select)related(*fields): 返回一个（forgein-key或one-to-one）关系的对象 Entry.objects.select_related('blog').get(id=5)
+				prefetch_related(*lookups):返回一个多对多或者一对多的集合
+				extra():用于执行类似sql的语句
+				defer(*fields):用于忽略检索模型中某些字段
+				only(*fields):和defer()方法相反，指定只检索某一个字段
+				usering(alias): 用户执行使用哪个数据库
+				select_for_update():锁行，知道事务快结束。
+				raw(): 获取原始数据查询，并返回django.db.models.query.RawQuerySet实例
+
+			不返回queryset的方法:
+				这些方法不使用缓存，每次调用都会查询数据库
+				get(**kwargs)
+				create(**kwrgs)
+				get_or_create(defaults=None, **kwargs)
+				update_or_crete(defaults=None, **kwargs)
+				bulk_create(objs, batch_size=None)
+				count()
+				in_bulk():	获取主键值对象的对象Blog.objects.in_bulk([1, 2])
+				iterator():		返回一个可迭代对象，没有缓存，直接查询，减少内存查询，但是增加了数据库压力
+				latest(field_name=None):	返回最新的记录，主要针对有时间字段类型的查询
+				earliest():	和方法latest刚好相反
+				first():	放回第一个记录
+				last():	返回最后一个记录
+				aggregate():	聚合
+				exists():	是否不为空
+				update():	执行该方法后，会自动提交数据，不用在调用save()方法
+				delete():	
+				as_mamanger():
+
+
+			其他方法：
+				delete(): 返回元组，包含删除的数据和对应的对象数据字典
+
+
+			Field字段查询：
+				exact: Entry.objects.get(id__exact=14)
+				iexact: 不区分大小写的完全匹配， Entry.objects.get(name__iexact='Jack')
+				contains : Entry.objects.get(headline__contains='Lennon')
+				icontains: 不区分大小写的包含 ENtry.objects.get(headlien_icontains='Leenon')
+				in: eg: Entry.objects.fitler(id__in=[1,3])
+				gt:
+				gte:
+				lt:
+				lte:
+				startswith: 区分开头大小写  Entry.objects.filter(headline__startswith='Lennon')
+				istartwith: :不区分
+				endswith:区分大小写的结尾
+				idenswith:不区分大小写的结尾
+				range: 指定范围 eg:Entry.objects.filter(pub_date__range=(start_date_obj, end_date_ojb)),
+					sql语句，select ... where pub_date between start_date and end_date
+
+				date:转换对象为日期， Entry.objects.filter(pub_date__date__gt=datetime.date(1999,01,01))
+				year:
+				month:
+				day:
+				week:  周数， 遵循iso-8601， Entry.objects.filter(pub_date__week__gte=32, pub_date__week__lte=38)
+				week_day:星期几  ENTry.objects.filter(pub_date__week_day__gte = 2)
+				time:
+				house:
+				minute:
+				second:
+				nunull:  Entry.objects.filter(pub_date__isnull=True)
+				search:	布尔全文搜索，从1.10版本不推荐使用
+				regex:	区分大小写的正则表达式匹配  Entry.objects.get(title__regex=r'^[AN?|The]+') 等价于mysql：SELECT ... WHERE title REGEXP BINARY '^(An?|The) +'; -- MySQL
+				iregex： 不区分大小写的正则
+
+		聚合函数：
+			聚合函数公共参数：
+				expression
+				output_field
+				**extra
+				Avg: class
+				Count: class
+				Max: class
+				Min: class
+				StdDev: class
+				Sum: class
+				Variance: class
+
+		查询关系工具：
+			Q()
+			Prefetch()
+			prefetch_related_objets()
+
+
+
+
+
+
+
+
+	F & Q
+	概念：
+		Q：封装过滤器为一个对象，为原始sql与逻辑条件 &  |的结合
+		F: 表示一个模型字段或注释段列的值，可以应用模型字段值在数据库中操作，不需要将其拉取到python内存中。这意味着减少了数据查询次数
+
+		from django.db.models import F, Q
+		eg:
+			BookInfo.objects.filter(bread_gt=F('id')*2)
+			BookInfo.objects.filter(Q(id__gt=1) & Q(name='python'))
+
+
+		F():
+		++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+		注意： F() 的 "+"加操作，为整数类型的加操作，如果利用F进行字符串的加操作，会报错
+
+		eg: 
+			reporter = Rsporters.objects.get(name='tim')
+			reporter.stories_field = F('stories_field') + 1
+			reporter.save()
+
+		一般要访问F操作后的新值，调用方法refresh_from_db()
+			eg:
+				reporter.refresh_from_db()
+
+
+		对queryset操作：
+			reporter = Reporters.objects.filter(name='Jim')
+			reporter.update(stories_filed=F('stories_field') + 1)
+
+
+		Q()
+		++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		常用连接符：|(or)， &(and)， 
+
+		 | :
+		 	Q(question_startwith='what') | q(question_startswith='who')
+			 	---> sql:  where question like 'what' or question like 'who'
+
+		 &:
+		 	Q(question_startwith='what') & q(question_startswith='who')
+		 		---> sql:  where question like 'what' and question like 'who'
+
+		
+
+
+    聚合（aggregate）：
+    	将两个有外键关联的model，使用left join关联查询
+    	from django.db.models import Sum, Count, Max, Min, Avg
+    	eg:
+    		BookInfo.objects.aggregate(Count('id'))
+    		BookInfo.objects.aggregate(Sum('bread'))
+
+    	对应sql语句如下： 
+    	SELECT COUNT(`crm_student`.`id`) AS `student__count` FROM `crm_customerinfo` LEFT OUTER JOIN `crm_student` ON (`crm_customerinfo`.`id` = `crm_student`.`customer_id`) ()
+
+
+    	anotate():
+    		将两个有外键关联的model，使用left join关联查询，并进行group by分组
+
+    		eg： ci.objects.all().annotate(Count('student'))
+
+	    	对应sql语句如下：
+	    		 SELECT `crm_customerinfo`.`id`, `crm_customerinfo`.`name`, `crm_customerinfo`.`c
+				ontact_type`, `crm_customerinfo`.`contact`, `crm_customerinfo`.`source`, `crm_cu
+				stomerinfo`.`referral_from_id`, `crm_customerinfo`.`consult_content`, `crm_custo
+				merinfo`.`status`, `crm_customerinfo`.`consultant_id`, `crm_customerinfo`.`date`
+				, `crm_customerinfo`.`ident`, COUNT(`crm_student`.`id`) AS `student__count` FROM
+				 `crm_customerinfo` LEFT OUTER JOIN `crm_student` ON (`crm_customerinfo`.`id` =
+				`crm_student`.`customer_id`) GROUP BY `crm_customerinfo`.`id` ORDER BY NULL LIMI
+				T 21 ()
+
+			多组聚合:
+    		Book.objects.annotate(Count('authors'), Count('store'))
+
+    		连接和聚合：
+    			用于涉及到使用有关键关联的表上的字段进行聚合，使用双下划线表示法、
+    			eg:
+    				Store.objects.annotate(min_price=Min('books__price'), max_price=Max('books__price'))
+    				Store.objects.aggregate(min_price=Min('books__price'), max_price=Max('books__price'))
+    			第三层查询连接：
+    				Store.objects.aggregate(youngest_age=Min('books__authors__age'))
+    		
+
+    django request
+

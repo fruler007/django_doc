@@ -1,0 +1,401 @@
+视图(view):
+
+	urls:
+		传递额外参数: url可选用第三个参数，该参数可传递给视图额外的参数
+			eg：
+				urlpatterns = [
+					url(r'^blog/(?P<year>[0-9]{4})/$', views.year_archive, {'foo':'bar'})
+				]
+
+			可传递给clude
+				urlpatterns = [
+					url(r'^blog/$', include('inner') {'foo':'bar'})
+				]
+
+
+		反向解析url：name参数
+			eg:
+				url(r'^articles/([0-9]{4})/$', views.year_archive, name='news-year-archive'),
+
+
+
+	返回：
+		常用返回对象：
+			django.http.HttpRequest
+			django.http.HttpResponseNotFound:  eg  HTTPResponseNotFound('<h1>Page not found</>')
+			django.http.render
+			django.http.render_to_response
+			django.htto.redirect
+
+
+	自定义错误视图：
+		我们可以自定义错误视图用于覆盖django内建错误视图。步骤如下
+		1.设置django的debug模式为False
+			settings.py
+				DEBUG = False
+				ALLOWED_HOSTS = ['*']
+		2.自定义错误视图函数
+			根据需求自定义视图函数，这里直接返回404.html页面
+			views.py
+				def page404(request):
+    				return render_to_response('errors/404.html')
+
+		3.在urlconf中配置
+			这里定义404代码页面，其中关键词‘handler404’为django固定写法，其他固定关键词有handler500，handler403，handler400，详见django官方文档内部视图（Built-in Views）
+
+			urs.py
+				from crm import views as crm_view
+				handler404 = crm_view.page404
+
+
+	HttpRequest对象：
+		属性：
+			HttpRequest.scheme: str type， 可是理解为使用的协议，http, https
+			HttpRequest.body: 原始的http请求体
+			HttpRequest.path:	str type, 请求也的路径，eg:'/blog/1/entry'
+			HttpRequest.path_info:路径信息。有的url路径有脚本前缀和路径信息两部分组成。eg:/minfo/music/bands/the_beatles,
+				前缀为'/minfo', path_info会"/music/bands/the_beatles/"
+			HttpRequest.method:
+			HttpRequest.encoding:	用于解码表达提交的数据
+			HttpRequest.content_type:	表示请求的字符串MIME类型，从表头content_type中解析
+			HttpRequest.content_params:	content_type标头中包含键值的字典
+			HttpRequest.GET: 类似字典的对象，包含get请求的参数, QueryDict
+			HttpRequest.POST:类似字典的对象，包含post请求的参数，不包含上传的文件
+			HttpRequest.COOKIES: 包含所有cookie的字典
+			HttpRequest.FILES:包含所有上传文件的类字典对象
+			HttpRequest.META：包含所有http标头的字典。可用的文件头取决于客户端和服务器
+				CONTENT_LENGTH - 请求正文的长度（作为字符串）。
+				CONTENT_TYPE - 请求正文的MIME类型。
+				HTTP_ACCEPT - 响应的可接受内容类型。
+				HTTP_ACCEPT_ENCODING - 可接受的响应编码。
+				HTTP_ACCEPT_LANGUAGE - 响应的可接受语言。
+				HTTP_HOST - 客户端发送的HTTP主机头。
+				HTTP_REFERER - 引用页面，如果有的话。
+				HTTP_USER_AGENT - 客户端的用户代理字符串。
+				QUERY_STRING - 查询字符串，作为单个（未解析的）字符串。
+				REMOTE_ADDR - 客户端的IP地址。
+				REMOTE_HOST - 客户端的主机名。
+				REMOTE_USER - Web服务器验证的用户（如果有）。
+				REQUEST_METHOD- 一个字符串，如"GET"或"POST"。
+				SERVER_NAME - 服务器的主机名。
+				SERVER_PORT - 服务器的端口（作为字符串）。
+
+		应用程序代码设置的属性：
+			HttpRequest.current_app: 设置当前的app	
+			HttpRequest.urlconf: 使用当前的urlconf参数复制调ROOT_URLCONF设置
+
+		中间件设置的属性：
+			HttpRequest.sission: 来自sessionMiddleware	一个可读写的类字典的对象，代表当前的会话。
+			HttpRequest.site:	来自CurrentSiteMiddleware: 
+			HttpRequest.user
+
+		方法：
+			HttpRequest.get_host():	使用HTTP_X_FROWARDED_HOST(如果启用)和HTTP_HOST标头嘻嘻，按顺序返回请求的原始主机。如果没有提供值，返回SERVER_NAME和SERVER_PORT的信息的组合 eg:"127.0.0.1:8000"
+			HttpRequest.get_port()：端口，获取方法同上
+			HttpRequest.get_full_path():获取全路径，包括查询字符串 eg:"/music/bands/the_beatles/?print=true"
+
+			HttpRequest.build_absolute_uri(location): 返回绝对uri形式location。eg:"https://example.com/music/bands/the_beatles/?print=true,如果么有提供参数location，这使用get_full_path()的值
+
+
+			HttpRequest.get_signed_cookiee(key, default=RAISE_ERROR, salt=', max_age=None)：返回已经前面的cookie值
+			HttpRequest.is_secure：如果请求是安全(https)的，返回True，
+			HttpRequest.is_ajax()： 是否使用ajax提交的请求。原理是通过检查HTTP_X_REQUESTED_WITH的字符串标题'XMLHttpRequest'来确定是否为ajax请求。大多数js库ajax请求时，会发送该标头。如果自己写XMLHttpRequest调用时，需手动设置，以便django能正常响应。
+			HttpRequest.read(size=None)：
+			HttpRequest.read(size=None)[source]
+			HttpRequest.readline()[source]
+			HttpRequest.readlines()[source]
+			HttpRequest.xreadlines()[source]
+			HttpRequest.__iter__()
+
+
+	QueryDict
+		QueryDict为dict的一个子类，实现了一个标准字典类的所有方法
+
+		QueryDict.__init__(query_string=None, mutable=False, encoding=None)
+			QeuryDict基于query_string实例化一个对象
+			>>> QueryDict('a=1&a=2&a=3')
+			<QueryDict：{'a'：['1'，'2']，'c'：['3']}>
+
+		classmethod QueryDict.fromkeys(iterable, value='', mutable=False, encoding=None):
+			eg:
+				>>> QueryDict.fromkeys(['a', 'a', 'b'], value='val')
+				<QueryDict: {'a': ['val', 'val'], 'b': ['val']}>
+
+		QueryDict.__getitem__(key)
+			返回key对应的值，如果有多个值，则返回最后一个，如果key不存在，抛出异常django.utils.datastructures.MultiValueDictKeyError
+
+		QueryDict.__setitem__()(key, value)
+			设置key，value，value将会转换为一个单元数的列表[value]
+			注意：修改的前提是，该实例运行修改
+
+		QueryDict.__contains__(key)
+			如果设置有key，返回True
+
+		QueryDict.get(key, default=None)：
+			使用逻辑与__getitem__()相同，但当没有查询到可以是，返回默认值
+
+		QueryDict.setdefault(key, default=None)[source]：
+			使用方法与dict.setdefault()类似
+
+		QueryDict.update(other_dict)
+			使用方法和dict.update类似，只不过会将字典other_dict的value累加，而不是覆盖
+			eg:
+				>>> q = QueryDict('a=1', mutable=True)
+				>>> q.update({'a': '2'})
+				>>> q.getlist('a')
+				['1', '2']
+				>>> q['a'] # returns the last
+				'2'
+
+		QueryDict.items():
+			类似dict.items(),但是当value为多个值是，返回最后一个值
+			eg:
+				>>> q = QueryDict('a=1&a=2&a=3')
+				>>> q.items()
+				[('a', '3')]
+
+		QueryDict.iteritems():
+			类似dict.iteritems()
+			仅在python2中可用
+
+		QueryDict.iterlists()：
+			类似dict.iterlists()
+			仅在python2中可用
+
+		QueryDict.values():
+			类似dict.values(), 但是如果value为多个值，则返回最后一个
+			eg：
+				>>> q = QueryDict('a=1&a=2&a=3')
+				>>> q.values()
+				['3']
+
+		QueryDict.itervalues():
+			类似 QueryDict.values()
+			仅在python2中可用
+
+
+		QueryDict.copy()
+			类似使用copy.deepcopy()返回对象的副本。副本可修改，及时原对象不可写
+
+		QueryDict.getlist(key, default=None)：
+			返回一个列表
+
+		QueryDict.setlist(key, list_)：
+
+		QueryDict.appendlist(key, item)
+
+		QueryDict.setlistdefault(key, default_list=None)
+
+		QueryDict.lists()：
+			类似方法items(),但是会列出所有的值
+			eg:
+				>>> q = QueryDict('a=1&a=2&a=3')
+				>>> q.lists()
+				[('a', ['1', '2', '3'])]
+
+		QueryDict.pop(key):
+			类似list.pop
+			eg：
+				>>> q = QueryDict('a=1&a=2&a=3', mutable=True)
+				>>> q.pop('a')
+				['1', '2', '3']
+
+		QueryDict.popitem()：
+			>>> q = QueryDict('a=1&a=2&a=3', mutable=True)
+			>>> q.popitem()
+			('a', ['1', '2', '3'])
+
+		QueryDict.dict()：
+			返回一个字典
+			eg:
+				>>> q = QueryDict('a=1&a=3&a=5')
+				>>> q.dict()
+				{'a': '5'}
+
+		QueryDict.urlencode(safe=None)
+			将对象格式化为一个query stirng格式，并返回
+			eg:
+				>>> q = QueryDict('a=2&b=3&b=5')
+				>>> q.urlencode()
+				'a=2&b=3&b=5'
+
+			使用参数safe传递不需要编码的字符：
+			eg:
+				>>> q = QueryDict(mutable=True)
+				>>> q['next'] = '/a&b/'
+				>>> q.urlencode(safe='/')
+				'next=/a%26b/'
+
+
+	HttpResponse对象：
+		 django.http模块
+
+		传递字符串：
+		 	eg:
+		 		>>> from django.http import HttpResponse
+				>>> response = HttpResponse("Here's the text of the Web page.")
+				>>> response = HttpResponse("Text only, please.", content_type="text/plain")
+
+		继续添加内容：
+			response = HttREspoinse()
+			>>> response.write("<p>Here's the text of the Web page.</p>")
+			>>> response.write("<p>Here's another paragraph.</p>")
+
+		设置header字段:
+			>>> response  =  HttpResponse （）
+			>>> response [ 'Age' ]  =  120 
+			>>> del  response [ 'Age' ]
+
+		告诉浏览器将响应视为文件附件
+			要告诉浏览器将响应视为文件附件，请使用 content_type参数并设置Content-Disposition标头。例如，这是您可以返回Microsoft Excel电子表格的方式：
+
+			>>> response  =  HttpResponse （my_data ， content_type = 'application / vnd.ms-excel' ）
+			>>> response [ 'Content-Disposition' ]  =  'attachment; 文件名= “foo.xls””
+			关于Content-Disposition标题没有Django特有的，但是很容易忘记语法，所以我们在这里包含它
+
+
+		属性：
+			HttpResponse.content：响应的内容，为字节字符串。
+			HttpResponse.charset： 字符串，表示响应的字符串编码
+			HttpResponse.status_code： 响应状态码
+			HttpResponse.reason_phrase：一般和status_code相同
+			HttpResponse.streaming：默认总是为False。若为True，表示中间件可以在不同于常规响应处理流式响应
+			HttpResponse.closed： 若为True，表示已经回复
+
+		方法：
+			HttpResponse.__init__(content='', content_type=None, status=200, reason=None, charset=None)
+				content: str类型
+				content_type: 设置MIME类型，如果没有设置，则使用 DEFAULT_CONTENT_TYPE ， DEFAULT_CHARSET设置。默认为“text/html; charset=utf-8”
+				status： 设置响应状态码
+				reason ：设置响应语句
+				charset： 设置响应的编码字符集
+
+			HttpResponse.__setitem__(header, value)：
+				设置header值
+
+			HttpResponse.__delitem__(header)：
+				删除header值
+
+			HttpResponse.has_header(header)
+				查询是否有对应的header
+
+			HttpResponse.setdefault(header,value):
+				设置header值，如果已经设置该值，则跳过
+
+			HttpResponse.set_cookie(key, value='', max_age=None, expires=None, path='/', domain=None, secure=None, httponly=False)
+				设置cookie
+
+			HttpResponse.set_signed_cookie(key, value, salt='', max_age=None, expires=None, path='/', domain=None, secure=None, httponly=True)
+				设置加密签名的cookie，关于加密签名详见：file:///C:/Users/Mr.koala/Desktop/django-docs-1.11-en/topics/signing.html
+
+			HttpResponse.delete_cookie(key, path='/', domain=None)：
+				删除cookie，如果cookie不存在，静默事变
+
+			HttpResponse.write(content)
+				此方法使HttpResponse实例成为类文件对象。
+
+			HttpResponse.flush()
+				此方法使HttpResponse实例成为类文件对象。
+
+			HttpResponse.tell()
+				此方法使HttpResponse实例成为类stream对象。
+
+			HttpResponse.getvalue()
+				返回一个HttpResponse.content,此方法使HttpResponse实例成为类文件对象。
+
+			HttpResponse.readable()
+				New in Django 1.10:
+				Always False. This method makes an HttpResponse instance a stream-like object.
+
+			HttpResponse.seekable()
+				New in Django 1.10:
+				Always False. This method makes an HttpResponse instance a stream-like object.
+
+			HttpResponse.writable()[source]
+				Always True. This method makes an HttpResponse instance a stream-like object.
+
+			HttpResponse.writelines(lines)[source]
+				Writes a list of lines to the response. Line separators are not added. This method makes an HttpResponse instance a stream-like object.
+
+
+	HttpResponse子类
+		Django中包含一定数量的HttpResonse子类，用于处理不同http响应，这些子类在django.http模块中
+
+		class HttpResponseRedirect
+
+		class HttpResponseRedirect[source]
+			
+		class HttpResponsePermanentRedirect[source]
+		
+		class HttpResponseNotModified[source]
+		
+		class HttpResponseBadRequest[source]
+	
+		class HttpResponseNotFound[source]
+	
+		class HttpResponseForbidden[source]
+
+		class HttpResponseNotAllowed[source]
+	
+		class HttpResponseGone[source]
+		
+		class HttpResponseServerError[source]
+		
+
+	JsonResponse对象
+		class JsonResponse(data, encoder=DjangoJSONEncoder, safe=True, json_dumps_params=None, **kwargs)
+			创建一个json编码的响应。
+			Content-Type头默认为 'application/json'
+			第一个参数data，为一个dict实例，如果参数safe设置为False，date为一个jason学序列化对象
+			第二个参数encoder，默认为 django.core.serializers.json.DjangoJSONEncoder，用户学历恶化date
+			参数json_dumps_params，是要传递给json.dumps()用于生成响应的调用的关键字参数的字典。
+
+			eg:
+				>>> from django.http import JsonResponse
+				>>> response = JsonResponse({'foo': 'bar'})
+				>>> response.content
+				b'{"foo": "bar"}'
+
+	StreamingHttpResponse对象：
+		class StreamingHttpResponse
+			用于django到浏览器的响应的流食传输。如果生产响应的时间很长或者使用很多的内存，你可以是这样。例如对生成大型的CSV很有用
+
+			Django专为短期请求而设计。流响应将在整个响应期间绑定工作进程。这可能导致性能不佳。
+
+			一般来说，您应该在请求 - 响应周期之外执行昂贵的任务，而不是诉诸流式响应。
+
+			特性：
+				应该给它一个迭代器，它产生字符串作为内容。
+				除非通过迭代响应对象本身，否则无法访问其内容。只有在将响应返回给客户端时才会发生这种情况。
+				它没有content属性。相反，它有一个 streaming_content属性。
+				您不能使用类似文件的对象tell()或write()方法。这样做会引发异常。
+
+			StreamingHttpResponse只应在绝对需要在将数据传输到客户端之前不迭代整个内容的情况下使用。由于无法访问内容，许多中间件无法正常运行。例如，无法为流式响应生成ETag和 Content-Length标头。
+
+
+			属性：
+				StreamingHttpResponse.streaming_content
+					一个表示内容的字符串迭代器
+
+				StreamingHttpResponse.status_code
+				
+				StreamingHttpResponse.reason_phrase
+
+				StreamingHttpResponse.streaming
+
+
+	FileResponse对象
+		class FileResponse
+		FileResponse是StreamingHttpResponse为二进制文件优化的子类。如果由wsgi服务器提供，它使用wsgi.file_wrapper，否则它将文件以小块的形式流出。
+
+
+		eg：
+			>>> from django.http import FileResponse
+			>>> response = FileResponse(open('myfile.png', 'rb'))
+
+
+
+	TemplateResponse和SimpleTemplateResponse:
+		标准的HttpResponse对象是亭台经过，已经在构造时，预先提供了内容块，虽然可以修改，但是并不是易于修改的形式。
+		允许装饰器或中间件在试图构造响应式修改是有一处的。例如：你喜欢修改使用的末班，或将其他数据放入到content中去。
+		TemplateResponse和SimpleTemplateResponse对象可以保留试图提供的模板和上下文的详细信息和上下文的信息，用于计算响应，但是不会处理最终输出
