@@ -1,1 +1,13 @@
-template
+模板：
+	常用模板：
+		 static
+		 	{% load static %}
+		 	{% static 'app/style.css' %}
+
+		 for
+		 	forloop.counter :从1开始的循环值
+		 	forloop.cunter0 :从0开始的循环值
+		 	forloop.revcounter :从索引值1开始循环
+		 	forloop.revcounter0:从索引值0开始循环
+		 	forloop.fister : 如果为循环的第一次，该值为True
+		 	forloop.last: 如果为循环的最后一次，该值为True
