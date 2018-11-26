@@ -1,0 +1,185 @@
+在Django创建一个form
+
+from django import forms
+
+class NameForm(forms.Form):
+	your_name = forms.CharField(label='Your name', max_length=100)
+
+
+一个Form实例有一个is_valid()方法，用于验证字段。如果调用该方法时，所有的字段都包含有效数据，将返回True，且将表单的数据放在属性cleaned_data
+
+
+
+配合视图使用
+
+eg: views.py
+
+from django.shortcuts import render
+from django.http import HttpResponseRedirect
+from .froms import NameForm
+
+
+def get_name(request):
+	if request.method = 'POST':
+		form = NameForm(request.POST)
+		if form.is_valid():
+			return HttpResonseRedirect('/')
+	else:
+		form = NameForm()
+
+	return render(request, 'name.html', {'form': form})
+
+
+
+配合模板使用
+name.py
+
+<form action='/your-name'  mehod='post'>
+	{% csrf_toekn %}
+	{{ form }}
+	<input type='submit' value='Submit'>
+</form>
+
+
+
+绑定与非绑定的表单实例
+	区别
+		未绑定的表单没有与之关联的数据，呈现给用户是，它将会为空或者默认值
+		绑定的表单，可以判断提交的表单数据是否有效。如果无效，这会报错，并告知用户那些数据需要更改
+
+	属性is_bound属性将告诉表单是否被绑定
+
+
+关于filed实例
+views.py
+
+from django import forms
+
+
+class ContactForm(forms.Form):
+	subject = forms.CharField(max_length=100)
+	message = forms.CharField(widget=forms.Textarea)
+	sender = froms.Emailfield()
+	cc_myself = forms.BooleadField(required=False)
+
+
+widget
+  每一个字段对对应一个Widget类，该类对应于html表单的weidit，例如<input type='text'>
+
+  一般情况下，每个字段都有一个合理的默认widget，例如， CharField字段对应TextInput。可以根据需要更改，例如更为为<textarea>
+
+
+
+在视图中如何处理数据，如下：
+
+from django.core.mail import send_mail
+
+if form.is_valid():
+	subject = form.cleaned_data['subject']
+	message = form.cleaned_data['message']
+	sender = form.cleaned_data['sender']
+	cc_myself = form.cleaned_data['cc_myself']
+
+	recipients = ['info@example.com']
+	if cc_myself:
+		recipints.append(sender)
+
+	send_main(subject, message, sender, recipients)
+	return HttpRespnseRedirct('/thanks')
+
+
+
+
+在模板中使用form
+
+	html输入选项：
+		{{ form.as_table }}
+		{{ form.as_p }}
+		{{ form.as_url }}
+
+		eg:
+			{{ form.as_p }}渲染效果实例
+
+			<p><label for="id_subject">Subject:</label>
+			    <input id="id_subject" type="text" name="subject" maxlength="100" required /></p>
+			<p><label for="id_message">Message:</label>
+			    <textarea name="message" id="id_message" required></textarea></p>
+			<p><label for="id_sender">Sender:</label>
+			    <input type="email" name="sender" id="id_sender" required /></p>
+			<p><label for="id_cc_myself">Cc myself:</label>
+			    <input type="checkbox" name="cc_myself" id="id_cc_myself" /></p
+
+
+手动渲染字段
+	我们可以使用每个字段的属性选择模板，例如{{ form.name_of_field }}
+	eg：
+		{{ form.non_field_errors }}
+		<div class="fieldWrapper">
+		    {{ form.subject.errors }}
+		    <label for="{{ form.subject.id_for_label }}">Email subject:</label>
+		    {{ form.subject }}
+		</div>
+		<div class="fieldWrapper">
+		    {{ form.message.errors }}
+		    <label for="{{ form.message.id_for_label }}">Your message:</label>
+		    {{ form.message }}
+		</div>
+		<div class="fieldWrapper">
+		    {{ form.sender.errors }}
+		    <label for="{{ form.sender.id_for_label }}">Your email address:</label>
+		    {{ form.sender }}
+		</div>
+		<div class="fieldWrapper">
+		    {{ form.cc_myself.errors }}
+		    <label for="{{ form.cc_myself.id_for_label }}">CC yourself?</label>
+		    {{ form.cc_myself }}
+		</div>
+
+
+	也可以使用label_tag()生成<label>元素
+	eg:
+		<div class='fieldWarpper'>
+			{{ form.subject.errors }}
+			{{ form.subject.lable_tag }}
+			{{ form.subject }}
+		</div
+
+
+
+选择表格错误信息
+	{{ form.non_field_errors }} 显示表单的非字段错误，一般放在表单的顶部
+
+	{{ form.name_of_field.errors }} 显示表单中所有字段的错误，且为无序的,渲染结果如下：
+		eg:
+			<ul class="errorlist">
+			    <li>Sender is required.</li>
+			</ul>
+
+
+	自定义错误显示格式,可使用关键字escape，如下：
+		{% if form.subject.erros %}
+			<ol>
+			{% for error in form.subjects.erros %}
+				<li><strong>{{ error|escape }}</strong></li>
+			{% endfor %}
+			</ol>
+		{% endif %}
+
+
+循环表单的字段
+	如果你的每个字段的html相同，可是使用{% for %}循环每个字段，以减少代码
+
+	eg:
+		{% for field in form %}
+			<div class="fieldWarpper">
+			{{ field.error }}
+			{{ field.label_tag }}{{ field }}
+			{% if field.help_text %}
+			<p class="help">{{ field.help_text }}</p>
+			{% endif %}
+			</div>
+		{% endfor %}
+
+
+	{{ feild }}可使用的属性如下:
+		
